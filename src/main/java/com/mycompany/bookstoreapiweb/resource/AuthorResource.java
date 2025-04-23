@@ -1,46 +1,43 @@
 package com.mycompany.bookstoreapiweb.resource;
 
+import com.mycompany.bookstoreapiweb.dao.AuthorDAO;
+import com.mycompany.bookstoreapiweb.exception.*;
 import com.mycompany.bookstoreapiweb.model.Author;
-import com.mycompany.bookstoreapiweb.exception.AuthorNotFoundException;
-import com.mycompany.bookstoreapiweb.exception.InvalidInputException;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
 import com.mycompany.bookstoreapiweb.model.Book;
 
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 @Path("/authors")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class AuthorResource {
-    private static final Map<Integer, Author> authors = new ConcurrentHashMap<>();
+    private static final AuthorDAO authorDAO = new AuthorDAO();
     private static final Map<Integer, Book> books = new ConcurrentHashMap<>();
-    private static final AtomicInteger authorId = new AtomicInteger(1);
     private static final Logger logger = Logger.getLogger(AuthorResource.class.getName());
 
     @POST
     public Response add(Author author) {
         validateAuthor(author);
-        author.setId(authorId.getAndIncrement());
-        authors.put(author.getId(), author);
-        logger.info("Author added: " + author);
-        return Response.status(Response.Status.CREATED).entity(author).build();
+        Author createdAuthor = authorDAO.addAuthor(author);
+        logger.info("Author added: " + createdAuthor);
+        return Response.status(Response.Status.CREATED).entity(createdAuthor).build();
     }
 
     @GET
     public Collection<Author> getAll() {
         logger.info("Fetching all authors");
-        return authors.values();
+        return authorDAO.getAllAuthors();
     }
 
     @GET
     @Path("/{id}")
     public Author get(@PathParam("id") int id) {
         logger.info("Fetching author with ID: " + id);
-        Author author = authors.get(id);
+        Author author = authorDAO.getAuthorById(id);
         if (author == null) {
             throw new AuthorNotFoundException("Author ID " + id + " not found");
         }
@@ -52,19 +49,17 @@ public class AuthorResource {
     public Author update(@PathParam("id") int id, Author author) {
         validateAuthor(author);
         logger.info("Updating author with ID: " + id);
-        if (!authors.containsKey(id)) {
+        if (!authorDAO.authorExists(id)) {
             throw new AuthorNotFoundException("Author ID " + id + " not found");
         }
-        author.setId(id);
-        authors.put(id, author);
-        return author;
+        return authorDAO.updateAuthor(id, author);
     }
 
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") int id) {
         logger.info("Deleting author with ID: " + id);
-        if (authors.remove(id) == null) {
+        if (!authorDAO.deleteAuthor(id)) {
             throw new AuthorNotFoundException("Author ID " + id + " not found");
         }
         return Response.noContent().build();

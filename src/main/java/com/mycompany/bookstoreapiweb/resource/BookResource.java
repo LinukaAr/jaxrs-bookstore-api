@@ -1,48 +1,46 @@
 package com.mycompany.bookstoreapiweb.resource;
 
+import com.mycompany.bookstoreapiweb.dao.BookDAO;
+import com.mycompany.bookstoreapiweb.exception.*;
 import com.mycompany.bookstoreapiweb.model.Book;
-import com.mycompany.bookstoreapiweb.exception.BookNotFoundException;
-import com.mycompany.bookstoreapiweb.exception.InvalidInputException;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 @Path("/books")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class BookResource {
-    private static final Map<Integer, Book> books = new ConcurrentHashMap<>();
-    private static final AtomicInteger bookId = new AtomicInteger(1);
+    private static final BookDAO bookDAO = new BookDAO();
     private static final Logger logger = Logger.getLogger(BookResource.class.getName());
 
+        // Add this method to the BookResource class
     public static Map<Integer, Book> getBooks() {
-        return books;
-    }
+        // Replace with actual logic to retrieve books
+        return new HashMap<>(); // Example: returning an empty map
+}
 
     @POST
     public Response add(Book book) {
         validateBook(book);
-        book.setId(bookId.getAndIncrement());
-        books.put(book.getId(), book);
-        logger.info("Book added: " + book);
-        return Response.status(Response.Status.CREATED).entity(book).build();
+        Book createdBook = bookDAO.addBook(book);
+        logger.info("Book added: " + createdBook);
+        return Response.status(Response.Status.CREATED).entity(createdBook).build();
     }
 
     @GET
     public Collection<Book> getAll() {
         logger.info("Fetching all books");
-        return books.values();
+        return bookDAO.getAllBooks();
     }
 
     @GET
     @Path("/{id}")
     public Book get(@PathParam("id") int id) {
         logger.info("Fetching book with ID: " + id);
-        Book book = books.get(id);
+        Book book = bookDAO.getBookById(id);
         if (book == null) {
             throw new BookNotFoundException("Book ID " + id + " not found");
         }
@@ -54,25 +52,22 @@ public class BookResource {
     public Book update(@PathParam("id") int id, Book book) {
         validateBook(book);
         logger.info("Updating book with ID: " + id);
-        if (!books.containsKey(id)) {
+        if (!bookDAO.bookExists(id)) {
             throw new BookNotFoundException("Book ID " + id + " not found");
         }
-        book.setId(id);
-        books.put(id, book);
-        return book;
+        return bookDAO.updateBook(id, book);
     }
 
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") int id) {
         logger.info("Deleting book with ID: " + id);
-        if (books.remove(id) == null) {
+        if (!bookDAO.deleteBook(id)) {
             throw new BookNotFoundException("Book ID " + id + " not found");
         }
         return Response.noContent().build();
     }
 
-    // This method is used to validate the book object before adding or updating it.
     private void validateBook(Book book) {
         if (book.getTitle() == null || book.getTitle().isEmpty()) {
             throw new InvalidInputException("Book title cannot be null or empty");
