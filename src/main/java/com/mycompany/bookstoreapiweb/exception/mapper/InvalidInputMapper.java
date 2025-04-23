@@ -11,7 +11,7 @@ import java.util.Map;
 public class InvalidInputMapper implements ExceptionMapper<InvalidInputException> {
     @Override
     public Response toResponse(InvalidInputException ex) {
-        return Response.status(Response.Status.NOT_FOUND)
+        return Response.status(Response.Status.BAD_REQUEST) // Changed to 400
                 .entity(Map.of("error", "Invalid Input", "message", ex.getMessage()))
                 .build();
     }
