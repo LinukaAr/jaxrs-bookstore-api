@@ -1,10 +1,20 @@
 package com.mycompany.bookstoreapiweb.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Customer {
     private int id;
+
+    @JsonProperty("fName")
     private String fname;
+
+    @JsonProperty("lName")
     private String lname;
+
+    @JsonProperty("email")
     private String email;
+
+    @JsonProperty("password")
     private String password;
 
     public Customer() {

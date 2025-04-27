@@ -1,5 +1,6 @@
 package com.mycompany.bookstoreapiweb.resource;
 
+import com.mycompany.bookstoreapiweb.dao.BookDAO;
 import com.mycompany.bookstoreapiweb.dao.CartDAO;
 import com.mycompany.bookstoreapiweb.exception.*;
 import com.mycompany.bookstoreapiweb.model.*;
@@ -28,7 +29,8 @@ public class CartResource {
     public Response addItem(@PathParam("customerId") int customerId, CartItem item) {
         validateCartItem(item);
 
-        Book book = books.get(item.getBookId());
+        // Fetch the book dynamically from the database
+        Book book = new BookDAO().getBookById(item.getBookId());
         if (book == null) throw new BookNotFoundException("Book not found.");
         if (book.getStock() < item.getQuantity()) throw new OutOfStockException("Not enough stock.");
 
@@ -73,6 +75,56 @@ public class CartResource {
 
         logger.info("Item removed from cart for customer ID: " + customerId);
         return cartDAO.getCart(customerId);
+    }
+
+    @PUT
+    @Path("/items/{bookId}")
+    public Response updateCartItem(@PathParam("customerId") int customerId,
+                                @PathParam("bookId") int bookId,
+                                CartItem updatedItem) {
+        validateCartItem(updatedItem);
+
+        // Fetch the cart dynamically from CartDAO
+        Cart cart = cartDAO.getCart(customerId);
+        if (cart == null) {
+            throw new CartNotFoundException("Cart not found for customer ID: " + customerId);
+        }
+
+        // Fetch the book dynamically from BookDAO
+        Book book = new BookDAO().getBookById(bookId);
+        if (book == null) {
+            throw new BookNotFoundException("Book not found.");
+        }
+
+        // Check if the book exists in the cart
+        Optional<CartItem> existingItemOpt = cart.getItems().stream()
+                .filter(item -> item.getBookId() == bookId)
+                .findFirst();
+
+        if (!existingItemOpt.isPresent()) {
+            throw new InvalidInputException("Book not found in the cart.");
+        }
+
+        CartItem existingItem = existingItemOpt.get();
+
+        // Calculate stock adjustment
+        int stockAdjustment = updatedItem.getQuantity() - existingItem.getQuantity();
+        if (book.getStock() < stockAdjustment) {
+            throw new OutOfStockException("Not enough stock available.");
+        }
+
+        // Update the cart item quantity
+        existingItem.setQuantity(updatedItem.getQuantity());
+        cartDAO.updateCartItem(customerId, existingItem);
+
+        // Update the stock
+        synchronized (book) {
+            book.setStock(book.getStock() - stockAdjustment);
+            new BookDAO().updateBookStock(bookId, book.getStock()); // Persist stock changes
+        }
+
+        logger.info("Cart item updated for customer ID: " + customerId + ", book ID: " + bookId);
+        return Response.ok(cartDAO.getCart(customerId)).build();
     }
 
     private void validateCartItem(CartItem item) {

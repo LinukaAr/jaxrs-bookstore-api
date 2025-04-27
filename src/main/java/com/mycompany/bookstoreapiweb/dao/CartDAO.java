@@ -36,4 +36,13 @@ public class CartDAO {
     public static Map<Integer, Cart> getAllCarts() {
         return carts;
     }
+
+    public void updateCartItem(int customerId, CartItem updatedItem) {
+        Cart cart = carts.get(customerId);
+        if (cart != null) {
+            // Find the existing item and update its quantity
+            cart.getItems().removeIf(item -> item.getBookId() == updatedItem.getBookId());
+            cart.addItem(updatedItem);
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.mycompany.bookstoreapiweb.resource;
 
+import com.mycompany.bookstoreapiweb.dao.AuthorDAO;
 import com.mycompany.bookstoreapiweb.dao.BookDAO;
 import com.mycompany.bookstoreapiweb.exception.*;
 import com.mycompany.bookstoreapiweb.model.Book;
@@ -14,17 +15,21 @@ import java.util.logging.Logger;
 @Consumes(MediaType.APPLICATION_JSON)
 public class BookResource {
     private static final BookDAO bookDAO = new BookDAO();
+    private static final AuthorDAO authorDAO = new AuthorDAO(); // Add AuthorDAO for validation
     private static final Logger logger = Logger.getLogger(BookResource.class.getName());
 
-        // Add this method to the BookResource class
     public static Map<Integer, Book> getBooks() {
-        // Replace with actual logic to retrieve books
-        return new HashMap<>(); // Example: returning an empty map
-}
-
+        Map<Integer, Book> bookMap = new HashMap<>();
+        for (Book book : bookDAO.getAllBooks()) {
+            bookMap.put(book.getId(), book);
+        }
+        return bookMap;
+    }
+    
     @POST
     public Response add(Book book) {
         validateBook(book);
+        validateAuthorId(book.getAuthorId()); // Validate authorId
         Book createdBook = bookDAO.addBook(book);
         logger.info("Book added: " + createdBook);
         return Response.status(Response.Status.CREATED).entity(createdBook).build();
@@ -51,6 +56,7 @@ public class BookResource {
     @Path("/{id}")
     public Book update(@PathParam("id") int id, Book book) {
         validateBook(book);
+        validateAuthorId(book.getAuthorId()); // Validate authorId
         logger.info("Updating book with ID: " + id);
         if (!bookDAO.bookExists(id)) {
             throw new BookNotFoundException("Book ID " + id + " not found");
@@ -80,6 +86,15 @@ public class BookResource {
         }
         if (book.getStock() < 0) {
             throw new InvalidInputException("Book stock cannot be negative");
+        }
+        if (book.getPublicationYear() > Calendar.getInstance().get(Calendar.YEAR)) {
+            throw new InvalidInputException("Publication year cannot be in the future.");
+        }
+    }
+
+    private void validateAuthorId(int authorId) {
+        if (!authorDAO.authorExists(authorId)) {
+            throw new AuthorNotFoundException("Author with ID " + authorId + " does not exist.");
         }
     }
 }

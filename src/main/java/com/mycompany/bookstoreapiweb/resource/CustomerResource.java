@@ -63,11 +63,15 @@ public class CustomerResource {
     }
 
     private void validateCustomer(Customer customer) {
-        if (customer.getFName() == null || customer.getFName().isEmpty() || customer.getLName() == null || customer.getLName().isEmpty()) {
+        if (customer.getFName() == null || customer.getFName().isEmpty() || 
+            customer.getLName() == null || customer.getLName().isEmpty()) {
             throw new InvalidInputException("Customer first name and last name cannot be null or empty");
         }
         if (customer.getEmail() == null || customer.getEmail().isEmpty()) {
             throw new InvalidInputException("Customer email cannot be null or empty");
+        }
+        if (!customer.getEmail().matches("^[\\w._%+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
+            throw new InvalidInputException("Customer email format is invalid");
         }
     }
 }

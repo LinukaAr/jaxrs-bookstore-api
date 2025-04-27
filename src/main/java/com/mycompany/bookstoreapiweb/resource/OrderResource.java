@@ -1,5 +1,6 @@
 package com.mycompany.bookstoreapiweb.resource;
 
+import com.mycompany.bookstoreapiweb.dao.CartDAO;
 import com.mycompany.bookstoreapiweb.dao.OrderDAO;
 import com.mycompany.bookstoreapiweb.exception.*;
 import com.mycompany.bookstoreapiweb.model.*;
@@ -20,7 +21,7 @@ public class OrderResource {
 
     @POST
     public Response placeOrder(@PathParam("customerId") int customerId) {
-        Cart cart = carts.get(customerId);
+        Cart cart = new CartDAO().getCart(customerId); // Fetch cart dynamically
         if (cart == null || cart.getItems().isEmpty()) {
             throw new CartNotFoundException("Cart is empty or not found.");
         }
@@ -53,11 +54,13 @@ public class OrderResource {
     @GET
     @Path("/{orderId}")
     public Order getOrder(@PathParam("customerId") int customerId,
-                          @PathParam("orderId") int id) {
-        logger.info("Fetching order ID: " + id + " for customer ID: " + customerId);
-        Order order = orderDAO.getOrderById(customerId, id);
+                        @PathParam("orderId") int orderId) {
+        logger.info("Fetching order ID: " + orderId + " for customer ID: " + customerId);
+        Order order = orderDAO.getOrderById(customerId, orderId);
         if (order == null) {
-            throw new WebApplicationException("Order not found", 404);
+            String errorMessage = "Invalid order ID: " + orderId + " for customer ID: " + customerId;
+            logger.warning(errorMessage);
+            throw new WebApplicationException(errorMessage, Response.Status.NOT_FOUND);
         }
         return order;
     }

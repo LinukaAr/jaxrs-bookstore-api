@@ -37,4 +37,13 @@ public class BookDAO {
     public boolean bookExists(int id) {
         return books.containsKey(id);
     }
+
+    public void updateBookStock(int bookId, int newStock) {
+        Book book = books.get(bookId);
+        if (book != null) {
+            book.setStock(newStock); // Update the stock
+        } else {
+            throw new IllegalArgumentException("Book with ID " + bookId + " does not exist.");
+        }
+    }
 }

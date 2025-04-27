@@ -1,9 +1,17 @@
 package com.mycompany.bookstoreapiweb.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Author {
     private int id;
+
+    @JsonProperty("fName")
     private String fname;
+
+    @JsonProperty("lName")
     private String lname;
+
+    @JsonProperty("biography")
     private String biography;
 
     public Author() {
